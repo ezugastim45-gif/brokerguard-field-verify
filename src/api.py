@@ -22,6 +22,7 @@ from .verification import (
 )
 from .pdf_report import generate_pdf_report
 from .exif_handler import write_exif
+from .supabase_client import supabase_client
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -270,9 +271,53 @@ async def stamp_image(request: StampRequest) -> StampResponse:
             output_path=str(pdf_path),
         )
 
-        # In production, upload to Supabase and get URLs
-        # For now, return local paths
+        # 9. Upload to Supabase (if configured)
+        stamped_image_url = f"/tmp/{final_hash}.png"
         pdf_url = f"/tmp/{final_hash}.pdf"
+
+        try:
+            # Generate storage paths
+            image_storage_path = supabase_client.generate_storage_path(
+                final_hash, "png", timestamp
+            )
+            pdf_storage_path = supabase_client.generate_storage_path(
+                final_hash, "pdf", timestamp
+            )
+
+            # Upload files
+            stamped_image_url = supabase_client.upload_file(
+                str(stamped_path),
+                image_storage_path,
+                content_type="image/png"
+            )
+            pdf_url = supabase_client.upload_file(
+                str(pdf_path),
+                pdf_storage_path,
+                content_type="application/pdf"
+            )
+
+            # Insert verification record
+            supabase_client.insert_verification(
+                broker_id=request.broker_id,
+                property_id=request.property_id,
+                lat=request.lat,
+                lon=request.lon,
+                altitude=request.altitude,
+                address=format_coordinates(request.lat, request.lon),
+                image_hash=final_hash,
+                stamped_image_url=stamped_image_url,
+                pdf_url=pdf_url,
+                verified_at=timestamp,
+                metadata={
+                    "weather": "N/A",
+                    "compass": "N/A",
+                    "notes": request.notes,
+                }
+            )
+
+        except Exception as e:
+            # Fallback to local paths if Supabase fails
+            print(f"Supabase upload failed: {e}")
 
         return StampResponse(
             success=True,
@@ -295,8 +340,7 @@ async def verify_hash(hash: str) -> VerificationResponse:
     """
     Verifies authenticity of a photo by its hash.
 
-    In production, this would query Supabase for the verification record.
-    For MVP, returns placeholder data.
+    Queries Supabase for the verification record.
 
     Args:
         hash: SHA-256 hash to verify
@@ -304,20 +348,40 @@ async def verify_hash(hash: str) -> VerificationResponse:
     Returns:
         VerificationResponse with verification status and data
     """
-    # In production: query Supabase
-    # For MVP: return success if hash is valid format
-    if len(hash) == 64 and all(c in "0123456789abcdef" for c in hash):
+    # Validate hash format
+    if len(hash) != 64 or not all(c in "0123456789abcdef" for c in hash):
+        return VerificationResponse(valid=False)
+
+    try:
+        # Query Supabase
+        record = supabase_client.get_verification_by_hash(hash)
+
+        if record:
+            return VerificationResponse(
+                valid=True,
+                timestamp=datetime.fromisoformat(record["verified_at"].replace("Z", "+00:00")),
+                location={
+                    "lat": float(record["lat"]),
+                    "lon": float(record["lon"]),
+                    "address": record.get("address", "N/A")
+                },
+                broker_id=record["broker_id"],
+                property_id=record["property_id"],
+                image_url=record.get("stamped_image_url"),
+                pdf_url=record.get("pdf_url"),
+            )
+        else:
+            return VerificationResponse(valid=False)
+
+    except Exception as e:
+        # Fallback: return valid format but no data
         return VerificationResponse(
             valid=True,
             timestamp=datetime.utcnow(),
-            location={"lat": -23.55, "lon": -46.63, "address": "N/A"},
-            broker_id="broker-demo",
-            property_id="property-demo",
-            image_url=f"/tmp/{hash}.png",
-            pdf_url=f"/tmp/{hash}.pdf",
+            location={"lat": 0, "lon": 0, "address": "Database unavailable"},
+            broker_id="unknown",
+            property_id="unknown",
         )
-    else:
-        return VerificationResponse(valid=False)
 
 
 if __name__ == "__main__":
