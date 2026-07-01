@@ -63,3 +63,4 @@ temp/
 *.jpg
 *.jpeg
 stamped_*.png
+cache/
