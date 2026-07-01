@@ -1,6 +1,6 @@
 """FastAPI application with field verification endpoints."""
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
@@ -23,6 +23,7 @@ from .verification import (
 from .pdf_report import generate_pdf_report
 from .exif_handler import write_exif
 from .supabase_client import supabase_client
+from .auth import verify_api_key
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -138,7 +139,12 @@ async def health_check() -> HealthResponse:
     )
 
 
-@app.post("/field-verify/stamp", response_model=StampResponse, tags=["Field Verification"])
+@app.post(
+    "/field-verify/stamp",
+    response_model=StampResponse,
+    tags=["Field Verification"],
+    dependencies=[Depends(verify_api_key)],
+)
 async def stamp_image(request: StampRequest) -> StampResponse:
     """
     Creates stamped image with GPS overlay, timestamp, and map.

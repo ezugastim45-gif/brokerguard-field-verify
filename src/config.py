@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     # Security
     secret_key: str = "test-secret-key-change-in-production"
     allowed_origins: List[str] = ["http://localhost:3000", "http://localhost:8001"]
+    require_api_key: bool = False  # true en produccion (X-API-Key vs api_keys)
 
     # Hash
     hash_algorithm: str = "sha256"

@@ -1,0 +1,30 @@
+# BrokerGuard Field Verify — produccion NEXUS-1 (76.13.26.65)
+# Puerto host 8005 (8002 lo ocupa iuris-api y 8004 tambien esta tomado).
+# Secretos via .env (nunca en git): SUPABASE_URL, SUPABASE_KEY,
+# SUPABASE_SERVICE_ROLE_KEY, REQUIRE_API_KEY=true.
+#
+# Uso: docker compose -f docker-compose.prod.yml up -d --build
+
+services:
+  field-verify:
+    build: .
+    image: brokerguard-field-verify:latest
+    container_name: bfv-api
+    restart: unless-stopped
+    ports:
+      - "8005:8002"
+    env_file:
+      - .env
+    environment:
+      REQUIRE_API_KEY: "true"
+    volumes:
+      # cache de tiles OSM persistente entre despliegues (modo offline)
+      - bfv_osm_cache:/app/cache/osm_tiles
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  bfv_osm_cache:

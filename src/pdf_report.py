@@ -127,9 +127,14 @@ def generate_pdf_report(
 
     elements.append(Spacer(1, 0.5 * cm))
 
-    # Stamped image
+    # Stamped image — escalar preservando aspecto y acotar la altura al frame
+    # (height=None usa la altura natural en puntos y desborda con imágenes altas)
     try:
-        img = RLImage(stamped_image_path, width=15 * cm, height=None)
+        with Image.open(stamped_image_path) as im:
+            img_w, img_h = im.size
+        max_w, max_h = 15 * cm, 14 * cm
+        scale = min(max_w / img_w, max_h / img_h)
+        img = RLImage(stamped_image_path, width=img_w * scale, height=img_h * scale)
         img.hAlign = "CENTER"
         elements.append(img)
     except Exception as e:

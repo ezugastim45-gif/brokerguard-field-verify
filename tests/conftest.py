@@ -1,5 +1,15 @@
 """Shared test fixtures for pytest."""
 
+import os
+
+# La suite corre aislada del .env de produccion: sin auth obligatorio y
+# contra el Supabase dummy de los defaults. Debe fijarse ANTES de que
+# cualquier test importe src.config (el singleton settings se crea al import).
+os.environ["REQUIRE_API_KEY"] = "false"
+os.environ["SUPABASE_URL"] = "https://test.supabase.co"
+os.environ["SUPABASE_KEY"] = "test-key"
+os.environ["SUPABASE_SERVICE_ROLE_KEY"] = "test-service-key"
+
 import pytest
 from PIL import Image
 import io
