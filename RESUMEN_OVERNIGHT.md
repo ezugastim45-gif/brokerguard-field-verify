@@ -58,15 +58,30 @@ RLS: service_role full + lectura pública por hash), bucket público
 
 ## 5. PENDIENTES para ti (no puedo hacerlos yo)
 
-1. **DNS**: crear registro A `verify.shildoo.com` → 76.13.26.65 y luego
-   `certbot --nginx -d verify.shildoo.com`. (Ojo: `bgie.shildoo.com` tampoco
-   resuelve ya — ¿se cayó el DNS de shildoo.com completo?)
-2. **Revocar el token GitHub** `ghp_kMMS…` expuesto anoche en el chat
-   (github.com/settings/tokens) — el push ya funciona con gh CLI.
+1. 🔴 **P0 — shildoo.com está SUSPENDIDO por el registrador** (diagnóstico
+   23:20 UTC): whois muestra **`clientHold` en Amazon Registrar** — la zona
+   entera está fuera del DNS global (ni shildoo.com, ni www, ni bgie.*, ni
+   nada resuelve, para todo el mundo, desde cualquier red). NO expiró (vence
+   2027-05). Causa típica: verificación de email de registrante pendiente o
+   problema de facturación. **Fix**: busca el correo de Amazon
+   Registrar/AWS con el link de verificación, o AWS Console → Route 53 →
+   Registered domains → shildoo.com. Al resolverlo, el hold se levanta en
+   minutos-horas. Después: crear A `verify.shildoo.com` → 76.13.26.65 y
+   `certbot --nginx -d verify.shildoo.com`.
+2. 🔴 **Revocar el token GitHub `ghp_kMMS…`**: verificado a las 23:19 UTC —
+   **sigue VIVO** y autenticado como ezugastim45-gif. NO es el token que usa
+   gh CLI (revocar es seguro, nada se rompe): github.com/settings/tokens.
 3. Guardar la API key de `~/BROKER1_WELCOME.txt` en un password manager y
    borrar el archivo.
 4. Decidir futuro del proyecto Supabase Brokerguard pausado (upgrade o
-   migración definitiva al compartido).
+   migración definitiva al compartido) — plan listo en
+   `docs/MIGRACION_SUPABASE.md`.
+
+## 5b. Pendientes de repo — YA RESUELTOS (01-jul noche)
+
+- ✅ main/master unificado: default = `main`, `master` remota eliminada.
+- ✅ `cache/` (tiles OSM) fuera de git (.gitignore + untrack).
+- ✅ Plan de migración Supabase documentado.
 
 ## 6. Estado de ZUMA-AI (corriendo en paralelo)
 
