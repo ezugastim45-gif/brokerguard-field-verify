@@ -1,5 +1,6 @@
 # BrokerGuard Field Verify — produccion NEXUS-1 (76.13.26.65)
-# Puerto host 8005 (8002 lo ocupa iuris-api y 8004 tambien esta tomado).
+# Puerto host 8002 (nativo). iuris-api ya no lo ocupa: movido a 127.0.0.1:8006
+# el 2026-07-04 (desacople NB/IURIS). El 8005 queda para zuma-ai-nb.
 # Secretos via .env (nunca en git): SUPABASE_URL, SUPABASE_KEY,
 # SUPABASE_SERVICE_ROLE_KEY, REQUIRE_API_KEY=true.
 #
@@ -12,11 +13,17 @@ services:
     container_name: bfv-api
     restart: unless-stopped
     ports:
-      - "8005:8002"
+      - "8002:8002"
+    networks:
+      - nucleobrokers
     env_file:
       - .env
     environment:
       REQUIRE_API_KEY: "true"
+      # IA dedicada NB (zuma-ai-nb en el host, :8005). Nada de 8003/iuris.
+      ZUMA_AI_URL: "http://host.docker.internal:8005/ask"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       # cache de tiles OSM persistente entre despliegues (modo offline)
       - bfv_osm_cache:/app/cache/osm_tiles
@@ -28,3 +35,8 @@ services:
 
 volumes:
   bfv_osm_cache:
+
+# Red dedicada NucleoBrokers (creada externa): aislamiento de IURIS.
+networks:
+  nucleobrokers:
+    external: true
