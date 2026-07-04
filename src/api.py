@@ -24,6 +24,7 @@ from .pdf_report import generate_pdf_report
 from .exif_handler import write_exif
 from .supabase_client import supabase_client
 from .auth import verify_api_key
+from . import zuma_client
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -105,6 +106,22 @@ class HealthResponse(BaseModel):
     dependencies: dict
 
 
+class AssistantAskRequest(BaseModel):
+    """Request model for the AI assistant. Solo texto — nunca imagenes."""
+
+    question: str = Field(..., min_length=3, max_length=2000, description="Question for the assistant")
+    plan: Optional[str] = Field(None, max_length=1000, description="Current plan, if any")
+    context: Optional[str] = Field(None, max_length=1000, description="Extra context (text only)")
+
+
+class AssistantAskResponse(BaseModel):
+    """Response model for the AI assistant."""
+
+    answer: str
+    model: str
+    latency_ms: int
+
+
 @app.get("/", tags=["Root"])
 async def root() -> dict:
     """Root endpoint."""
@@ -137,6 +154,24 @@ async def health_check() -> HealthResponse:
         version=settings.api_version,
         dependencies={"osm": osm_status, "cache": cache_status},
     )
+
+
+@app.post(
+    "/assistant/ask",
+    response_model=AssistantAskResponse,
+    tags=["Assistant"],
+    dependencies=[Depends(verify_api_key)],
+)
+async def assistant_ask(request: AssistantAskRequest) -> AssistantAskResponse:
+    """Consulta al asistente IA dedicado NB (fail-closed: sin URL = 503)."""
+    try:
+        result = zuma_client.ask(request.question, plan=request.plan, context=request.context)
+    except zuma_client.ZumaAIUnavailable as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"AI assistant unavailable: {e}",
+        )
+    return AssistantAskResponse(**result)
 
 
 @app.post(

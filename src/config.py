@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     allowed_origins: List[str] = ["http://localhost:3000", "http://localhost:8001"]
     require_api_key: bool = False  # true en produccion (X-API-Key vs api_keys)
 
+    # Asistente IA dedicado NB (zuma-ai-nb). Fail-closed: con URL vacia el
+    # endpoint /assistant/ask responde 503 limpio y el core sigue intacto.
+    zuma_ai_url: str = ""
+    zuma_ai_key: str = ""
+    zuma_ai_timeout: float = 300.0  # inferencia CPU local: 40-155s medidos, varia con carga
+
     # Hash
     hash_algorithm: str = "sha256"
 
